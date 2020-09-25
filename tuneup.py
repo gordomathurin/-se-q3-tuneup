@@ -9,20 +9,23 @@ __author__ = "Gordon Mathurin"
 
 import cProfile
 import pstats
-# import functools --> need to figure out whats up with this
+import functools
 import timeit
+from pstats import SortKey
+from collections import Counter
 
 
 def profile(func):
     """A cProfile decorator function that can be used to
     measure performance."""
+    @functools.wraps(func)
     def wrapper(*args, **kwargs):
         profile = cProfile.Profile()
         profile.enable()
         origin_func = func(*args, **kwargs)
         profile.disable()
-        sortby = "cumulative"
-        stats = pstats.Stats(profile).sort_stats(sortby)
+        sortby = SortKey.CUMULATIVE
+        stats = pstats.Stats(profile).strip_dirs().sort_stats(sortby)
         restriction = 10
         stats.print_stats(restriction)
         return origin_func
@@ -56,29 +59,33 @@ def find_duplicate_movies(src):
             duplicates.append(movie)
     return duplicates
 
-#
-# Students: write a better version of find_duplicate_movies
-#
 
-
+@profile
 def optimized_find_duplicate_movies(src):
     # Your code here
-    return
+    movies = read_movies(src)
+    duplicates = []
+    c = Counter(movies)
+    for movie in c:
+        if c[movie] > 1:
+            duplicates.append(movie)
+    return duplicates
 
 
 def timeit_helper(func_name, func_param):
     """Part A: Obtain some profiling measurements using timeit"""
     assert isinstance(func_name, str)
     stmt = f"{func_name} ('{func_param}')"
-    setup = f"from __name__ import {func_name}"
+    setup = f"from {__name__} import {func_name}"
     t = timeit.Timer(stmt=stmt, setup=setup)
     runs_per_repeat = 3
     num_repeats = 5
     result = t.repeat(repeat=num_repeats, number=runs_per_repeat)
-    time_cost = min((result) / (num_repeats))
+    time_cost = min(result)/(num_repeats)
     print(f"func={func_name}  num_repeats={num_repeats} \
           runs_per_repeat={runs_per_repeat} time_cost={time_cost: .3f} sec")
     return t
+    return result
 
 
 def main():
